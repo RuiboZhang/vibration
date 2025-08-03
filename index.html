@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简谐振动合成交互教学</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.4.0/lib/p5.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .container {
+            max-width: 1000px;
+            width: 100%;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            padding: 20px 0;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            background: linear-gradient(90deg, #00c6ff, #0072ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            position: relative;
+            padding-bottom: 15px;
+        }
+        
+        h1::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 150px;
+            height: 4px;
+            background: linear-gradient(90deg, #00c6ff, #0072ff);
+            border-radius: 2px;
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            max-width: 800px;
+            margin: 20px auto 0;
+            line-height: 1.6;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 3px solid #00c6ff;
+        }
+        
+        .tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .tab-btn {
+            background: rgba(255, 255, 255, 0.15);
+            border: none;
+            color: white;
+            padding: 12px 30px;
+            font-size: 1.1rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .tab-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: 0.5s;
+        }
+        
+        .tab-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-3px);
+        }
+        
+        .tab-btn:hover::before {
+            left: 100%;
+        }
+        
+        .tab-btn.active {
+            background: linear-gradient(90deg, #00c6ff, #0072ff);
+            box-shadow: 0 4px 15px rgba(0, 114, 255, 0.4);
+        }
+        
+        .tab-content {
+            display: none;
+            background: rgba(25, 25, 50, 0.7);
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .content-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .content-header h2 {
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+            color: #00c6ff;
+        }
+        
+        .content-header p {
+            font-size: 1rem;
+            opacity: 0.85;
+            max-width: 700px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+        
+        .simulation-container {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+        
+        .canvas-container {
+            width: 100%;
+            background: rgba(0, 0, 30, 0.5);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+        
+        .canvas-title {
+            position: absolute;
+            top: 15px;
+            left: 20px;
+            background: rgba(0, 198, 255, 0.2);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            z-index: 10;
+        }
+        
+        #vibrationCanvas, #lissajousCanvas {
+            width: 100%;
+            height: 350px;
+            background: rgba(0, 5, 20, 0.7);
+            border-radius: 10px;
+        }
+        
+        .controls {
+            width: 100%;
+            background: rgba(0, 0, 30, 0.5);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .control-group {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(0, 30, 60, 0.3);
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .control-group.active {
+            background: rgba(0, 60, 100, 0.4);
+            box-shadow: 0 0 15px rgba(0, 150, 255, 0.3);
+        }
+        
+        .control-group h3 {
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+            color: #4fc3f7;
+            display: flex;
+            align-items: center;
+        }
+        
+        .control-group h3 i {
+            margin-right: 10px;
+            font-size: 1.3rem;
+        }
+        
+        .slider-container {
+            margin-bottom: 15px;
+        }
+        
+        .slider-container label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+            opacity: 0.9;
+        }
+        
+        .slider-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        input[type="range"] {
+            flex: 1;
+            height: 8px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #0072ff;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 114, 255, 0.7);
+            transition: transform 0.2s;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+        
+        .value-display {
+            min-width: 50px;
+            text-align: center;
+            background: rgba(0, 114, 255, 0.2);
+            padding: 5px 10px;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        
+        .explanation {
+            background: rgba(0, 20, 40, 0.6);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+            border-left: 4px solid #00c6ff;
+        }
+        
+        .explanation h3 {
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+            color: #00c6ff;
+        }
+        
+        .explanation p {
+            margin-bottom: 15px;
+            line-height: 1.7;
+            font-size: 1rem;
+        }
+        
+        .equation {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px;
+            border-radius: 10px;
+            margin: 15px 0;
+            font-family: 'Cambria Math', serif;
+            font-size: 1.1rem;
+            text-align: center;
+            overflow-x: auto;
+            color: #00c6ff;
+        }
+        
+        .qr-section {
+            text-align: center;
+            padding: 20px;
+            background: rgba(0, 30, 60, 0.6);
+            border-radius: 15px;
+            margin-top: 20px;
+            max-width: 300px;
+            margin-left: auto;
+            margin-right: auto;
+            border: 1px solid rgba(0, 198, 255, 0.3);
+        }
+        
+        .qr-section h3 {
+            margin-bottom: 15px;
+            color: #4db6ac;
+            font-size: 1.2rem;
+        }
+        
+        #qrcode {
+            width: 140px;
+            height: 140px;
+            margin: 0 auto;
+            background: white;
+            padding: 10px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #0072ff;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 20px;
+            margin-top: 25px;
+            font-size: 0.85rem;
+            opacity: 0.8;
+        }
+        
+        .highlight {
+            color: #00c6ff;
+            font-weight: bold;
+        }
+        
+        .param-change-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background: #ff5252;
+            border-radius: 50%;
+            margin-left: 5px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .param-change-indicator.active {
+            opacity: 1;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .action-buttons .tab-btn {
+            flex: 1;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>简谐振动的合成</h1>
+            <p class="subtitle">通过交互式模拟探索简谐振动的合成原理 （Tips: 横屏体验效果更佳）</p>
+        </header>
+        
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="same-direction">同方向振动合成</button>
+            <button class="tab-btn" data-tab="perpendicular">垂直振动合成（李萨如图形）</button>
+        </div>
+        
+        <!-- 同方向振动合成 -->
+        <div id="same-direction" class="tab-content active">
+            <div class="content-header">
+                <h2>同方向简谐振动合成</h2>
+                <p>两个相同方向的简谐振动合成后仍为简谐振动。调整参数观察合成效果，理解振幅、频率和相位对合成振动的影响。</p>
+            </div>
+            
+            <div class="simulation-container">
+                <div class="canvas-container">
+                    <div class="canvas-title">波形合成示意图</div>
+                    <canvas id="vibrationCanvas"></canvas>
+                </div>
+                
+                <div class="controls">
+                    <div class="control-group">
+                        <h3><i>📐</i> 振动1参数控制</h3>
+                        
+                        <div class="slider-container">
+                            <label>振幅 A1: <span id="amp1-value">1.0</span></label>
+                            <div class="slider-wrapper">
+                                <input type="range" id="amp1" min="0.1" max="2" step="0.1" value="1">
+                                <span class="value-display">1.0</span>
+                            </div>
+                        </div>
+                        
+                        <div class="slider-container">
+                            <label>频率 f1: <span id="freq1-value">1.0</span> Hz</label>
+                            <div class="slider-wrapper">
+                                <input type="range" id="freq1" min="3" max="6" step="0.1" value="1">
+                                <span class="value-display">1.0</span>
+                            </div>
+                        </div>
+                        
+                        <div class="slider-container">
+                            <label>相位 φ1: <span id="phase1-value">0.0</span>°</label>
+                            <div class="slider-wrapper">
+                                <input type="range" id="phase1" min="0" max="360" step="1" value="0">
+                                <span class="value-display">0°</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <h3><i>📐</i> 振动2参数控制</h3>
+                        
+                        <div class="slider-container">
+                            <label>振幅 A2: <span id="amp2-value">1.0</span></label>
+                            <div class="slider-wrapper">
+                                <input type="range" id="amp2" min="0.1" max="2" step="0.1" value="1">
+                                <span class="value-display">1.0</span>
+                            </div>
+                        </div>
+                        
+                        <div class="slider-container">
+                            <label>频率 f2: <span id="freq2-value">1.0</span> Hz</label>
+                            <div class="slider-wrapper">
+                                <input type="range" id="freq2" min="3" max="6" step="0.1" value="1">
+                                <span class="value-display">1.0</span>
+                            </div>
+                        </div>
+                        
+                        <div class="slider-container">
+                            <label>相位 φ2: <span id="phase2-value">0.0</span>°</label>
+                            <div class="slider-wrapper">
+                                <input type="range" id="phase2" min="0" max="360" step="1" value="0">
+                                <span class="value-display">0°</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button id="resetBtn" class="tab-btn" style="background: rgba(255, 99, 71, 0.2);">重置参数</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="explanation">
+                <h3>物理原理与数学表达</h3>
+                <p>两个同方向、同频率的简谐振动合成后仍为简谐振动，其振幅和初相位由原来的两个振动决定。</p>
+                
+                <div class="equation">
+                    y₁(t) = A₁·sin(ω₁t + φ₁)<br>
+                    y₂(t) = A₂·sin(ω₂t + φ₂)<br>
+                    y(t) = y₁(t) + y₂(t)
+                </div>
+                
+                <p>当两个振动频率相同时，合成振动为：</p>
+                <div class="equation">
+                    y(t) = A·sin(ωt + φ)<br>
+                    A = √(A₁² + A₂² + 2A₁A₂cos(Δφ))<br>
+                    tanφ = (A₁sinφ₁ + A₂sinφ₂) / (A₁cosφ₁ + A₂cosφ₂)
+                </div>
+                
+                <p>当频率不同时，合成振动不再是简谐振动，会产生<span class="highlight">"拍"现象</span>，拍频为两频率之差。</p>
+            </div>
+        </div>
+        
+        <!-- 垂直振动合成（李萨如图形） -->
+        <div id="perpendicular" class="tab-content">
+            <div class="content-header">
+                <h2>相互垂直的简谐振动合成</h2>
+                <p>两个相互垂直的简谐振动合成后会形成李萨如图形。调整参数观察图形变化，理解频率比和相位差对图形的影响。</p>
+                <p style="color: #ff5252; margin-top: 10px;"><strong>参数改变后轨迹将自动刷新</strong></p>
+            </div>
+            
+            <div class="simulation-container">
+                <div class="canvas-container">
+                    <div class="canvas-title">  <span class="param-change-indicator" id="reset-indicator"></span></div>
+                    <div id="lissajousCanvas"></div>
+                </div>
+                
+                <div class="controls">
+                    <div class="control-group" id="x-control-group">
+                        <h3><i>↔️</i> X方向振动 <span class="param-change-indicator" id="x-indicator"></span></h3>
+                        
+                        <div class="slider-container">
+                            <label>振幅 Ax: <span id="ampX-value">1.0</span></label>
+                            <div class="slider-wrapper">
+                                <input type="range" id="ampX" min="0.1" max="2" step="0.1" value="1">
+                                <span class="value-display">1.0</span>
+                            </div>
+                        </div>
+                        
+                        <div class="slider-container">
+                            <label>频率 fx: <span id="freqX-value">1.0</span> Hz</label>
+                            <div class="slider-wrapper">
+                                <input type="range" id="freqX" min="1" max="5" step="1" value="1">
+                                <span class="value-display">1</span>
+                            </div>
+                        </div>
+                        
+                        <div class="slider-container">
+                            <label>相位 φx: <span id="phaseX-value">0.0</span>°</label>
+                            <div class="slider-wrapper">
+                                <input type="range" id="phaseX" min="0" max="360" step="15" value="0">
+                                <span class="value-display">0°</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="control-group" id="y-control-group">
+                        <h3><i>↕️</i> Y方向振动 <span class="param-change-indicator" id="y-indicator"></span></h3>
+                        
+                        <div class="slider-container">
+                            <label>振幅 Ay: <span id="ampY-value">1.0</span></label>
+                            <div class="slider-wrapper">
+                                <input type="range" id="ampY" min="0.1" max="2" step="0.1" value="1">
+                                <span class="value-display">1.0</span>
+                            </div>
+                        </div>
+                        
+                        <div class="slider-container">
+                            <label>频率 fy: <span id="freqY-value">1.0</span> Hz</label>
+                            <div class="slider-wrapper">
+                                <input type="range" id="freqY" min="1" max="5" step="1" value="1">
+                                <span class="value-display">1</span>
+                            </div>
+                        </div>
+                        
+                        <div class="slider-container">
+                            <label>相位 φy: <span id="phaseY-value">0.0</span>°</label>
+                            <div class="slider-wrapper">
+                                <input type="range" id="phaseY" min="0" max="360" step="15" value="0">
+                                <span class="value-display">0°</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="control-group" id="settings-group">
+                        <h3><i>⚙️</i> 显示设置 <span class="param-change-indicator" id="settings-indicator"></span></h3>
+                        
+                        <div class="slider-container">
+                            <label>轨迹持续时间: <span id="duration-value">5</span>秒</label>
+                            <div class="slider-wrapper">
+                                <input type="range" id="duration" min="1" max="10" step="1" value="5">
+                                <span class="value-display">5s</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button id="clearBtn" class="tab-btn" style="background: rgba(255, 99, 71, 0.2);">清除轨迹</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="explanation">
+                <h3>李萨如图形原理</h3>
+                <p>两个相互垂直的简谐振动合成的轨迹称为李萨如图形，其形状由两个振动的频率比和相位差决定。</p>
+                
+                <div class="equation">
+                    x(t) = Aₓ·sin(ωₓt + φₓ)<br>
+                    y(t) = Aᵧ·sin(ωᵧt + φᵧ)
+                </div>
+                
+                <p>李萨如图形可用于测量未知频率：当两个振动的频率比为简单整数比时，图形稳定且具有对称性。频率比等于图形在x轴和y轴方向的切点数之比。</p>
+                
+                <p>相位差的变化会使图形发生旋转，不同的相位差会产生不同的图形：</p>
+                <ul style="padding-left: 20px; margin-top: 10px;">
+                    <li>Δφ = 0°: <span class="highlight">直线</span>（第一、三象限对角线）</li>
+                    <li>Δφ = 90°: <span class="highlight">椭圆</span>（当振幅相等时为圆）</li>
+                    <li>Δφ = 180°: <span class="highlight">直线</span>（第二、四象限对角线）</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="qr-section">
+            <h3>扫码体验</h3>
+            <div id="qrcode">扫描二维码<br>在手机上体验</div>
+            <p style="margin-top: 15px;">使用手机扫描二维码在移动设备上体验</p>
+        </div>
+        
+        <footer>
+            <p>简谐振动合成交互教学系统</p>
+        </footer>
+    </div>
+
+    <script>
+        // 标签切换功能
+        document.querySelectorAll('.tab-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                const tabId = button.getAttribute('data-tab');
+                
+                // 更新按钮状态
+                document.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                button.classList.add('active');
+                
+                // 更新内容显示
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                document.getElementById(tabId).classList.add('active');
+            });
+        });
+        
+        // 更新滑块值显示
+        document.querySelectorAll('input[type="range"]').forEach(slider => {
+            const valueDisplay = slider.nextElementSibling;
+            slider.addEventListener('input', () => {
+                valueDisplay.textContent = slider.id.includes('phase') || 
+                                         slider.id.includes('freqY') || 
+                                         slider.id.includes('freqX') || 
+                                         slider.id.includes('freq') ?
+                    `${slider.value}${slider.id.includes('phase') ? '°' : (slider.id.includes('freq') ? ' Hz' : '')}` : 
+                    parseFloat(slider.value).toFixed(1);
+                
+                // 更新对应的span值
+                const spanId = slider.id + '-value';
+                if (document.getElementById(spanId)) {
+                    document.getElementById(spanId).textContent = 
+                        slider.id.includes('phase') ? 
+                        parseFloat(slider.value).toFixed(0) : 
+                        parseFloat(slider.value).toFixed(1);
+                }
+            });
+            
+            // 初始化显示
+            slider.dispatchEvent(new Event('input'));
+        });
+        
+        // 重置按钮
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            document.getElementById('amp1').value = 1;
+            document.getElementById('freq1').value = 1;
+            document.getElementById('phase1').value = 0;
+            document.getElementById('amp2').value = 1;
+            document.getElementById('freq2').value = 1;
+            document.getElementById('phase2').value = 0;
+            
+            // 触发更新显示
+            document.querySelectorAll('input[type="range"]').forEach(slider => {
+                slider.dispatchEvent(new Event('input'));
+            });
+        });
+        
+        // 同方向振动合成图表
+        const vibCtx = document.getElementById('vibrationCanvas').getContext('2d');
+        const vibChart = new Chart(vibCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: '振动1',
+                        borderColor: '#4fc3f7',
+                        backgroundColor: 'rgba(79, 195, 247, 0.1)',
+                        data: [],
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        tension: 0.4
+                    },
+                    {
+                        label: '振动2',
+                        borderColor: '#e91e63',
+                        backgroundColor: 'rgba(233, 30, 99, 0.1)',
+                        data: [],
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        tension: 0.4
+                    },
+                    {
+                        label: '合成振动',
+                        borderColor: '#ffeb3b',
+                        backgroundColor: 'rgba(255, 235, 59, 0.1)',
+                        data: [],
+                        borderWidth: 3,
+                        pointRadius: 0,
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: '时间 (s)',
+                            color: '#aaa'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                    ticks: {
+                    // 指定要显示的精确刻度值
+                        callback: function(value) {
+                            // 只显示特定点的标签（0,100,200,300,400）
+                            if ([0, 50, 100, 150, 200, 250, 300, 350, 400].includes(value)) {
+                            // 将索引值转换为秒数 (100索引 = 1秒)
+                            return (value * 0.01).toFixed(1);
+                            }
+                        return null; // 其他点不显示标签
+                        },
+                        color: '#ddd',
+                        // 添加自动跳过设置确保只显示指定刻度
+                        autoSkip: true,
+                        maxTicksLimit: 9, // 最大刻度数
+                        maxRotation: 0,
+                        minRotation: 0
+                        },
+                        min: 0,
+                        max: 400
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: '位移',
+                            color: '#aaa'
+                        },
+                        min: -4,
+                        max: 4,
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        ticks: {
+                            stepSize: 1,
+                            color: '#ddd'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#fff',
+                            font: {
+                                size: 12
+                            }
+                        }
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: 'rgba(0, 0, 30, 0.8)',
+                        titleColor: '#00c6ff',
+                        bodyColor: '#fff',
+                        borderColor: 'rgba(0, 198, 255, 0.5)',
+                        borderWidth: 1
+                    }
+                },
+                animation: {
+                    duration: 300,
+                    easing: 'easeOutQuart'
+                }
+            }
+        });
+        
+        // 生成波形数据
+        function generateWaveData() {
+            const amp1 = parseFloat(document.getElementById('amp1').value);
+            const freq1 = parseFloat(document.getElementById('freq1').value);
+            const phase1 = parseFloat(document.getElementById('phase1').value) * Math.PI / 180;
+            
+            const amp2 = parseFloat(document.getElementById('amp2').value);
+            const freq2 = parseFloat(document.getElementById('freq2').value);
+            const phase2 = parseFloat(document.getElementById('phase2').value) * Math.PI / 180;
+            
+            const timePoints = [];
+            const wave1 = [];
+            const wave2 = [];
+            const combined = [];
+            
+            for (let t = 0; t <= 4; t += 0.01) {
+                timePoints.push(t);
+                
+                const y1 = amp1 * Math.sin(2 * Math.PI * freq1 * t + phase1);
+                const y2 = amp2 * Math.sin(2 * Math.PI * freq2 * t + phase2);
+                
+                wave1.push(y1);
+                wave2.push(y2);
+                combined.push(y1 + y2);
+            }
+            
+            vibChart.data.labels = timePoints;
+            vibChart.data.datasets[0].data = wave1;
+            vibChart.data.datasets[1].data = wave2;
+            vibChart.data.datasets[2].data = combined;
+            vibChart.update();
+        }
+        
+        // 监听滑块变化
+        document.querySelectorAll('#same-direction input[type="range"]').forEach(slider => {
+            slider.addEventListener('input', generateWaveData);
+        });
+        
+        // 初始生成波形
+        generateWaveData();
+        
+        // 李萨如图形 - 使用p5.js
+        let lissajousP5 = null;
+        
+        function initLissajous() {
+            // 移除现有实例
+            if (lissajousP5) {
+                lissajousP5.remove();
+            }
+            
+            // 创建新实例
+            lissajousP5 = new p5(function(p) {
+                let points = [];
+                let time = 0;
+                let lastParams = {};
+                
+                p.setup = function() {
+                    let canvas = p.createCanvas(600, 350);
+                    canvas.parent('lissajousCanvas');
+                    p.background(0, 10, 30);
+                    p.frameRate(30);
+                    
+                    // 存储初始参数
+                    lastParams = {
+                        ampX: parseFloat(document.getElementById('ampX').value),
+                        freqX: parseFloat(document.getElementById('freqX').value),
+                        phaseX: parseFloat(document.getElementById('phaseX').value),
+                        ampY: parseFloat(document.getElementById('ampY').value),
+                        freqY: parseFloat(document.getElementById('freqY').value),
+                        phaseY: parseFloat(document.getElementById('phaseY').value),
+                        duration: parseInt(document.getElementById('duration').value)
+                    };
+                };
+                
+                p.draw = function() {
+                    // 获取当前参数
+                    const ampX = parseFloat(document.getElementById('ampX').value);
+                    const freqX = parseFloat(document.getElementById('freqX').value);
+                    const phaseX = parseFloat(document.getElementById('phaseX').value) * Math.PI / 180;
+                    
+                    const ampY = parseFloat(document.getElementById('ampY').value);
+                    const freqY = parseFloat(document.getElementById('freqY').value);
+                    const phaseY = parseFloat(document.getElementById('phaseY').value) * Math.PI / 180;
+                    
+                    const duration = parseInt(document.getElementById('duration').value);
+                    
+                    // 检查参数是否变化
+                    const currentParams = {
+                        ampX, freqX, phaseX: parseFloat(document.getElementById('phaseX').value),
+                        ampY, freqY, phaseY: parseFloat(document.getElementById('phaseY').value),
+                        duration
+                    };
+                    
+                    // 如果参数变化，重置轨迹
+                    if (JSON.stringify(currentParams) !== JSON.stringify(lastParams)) {
+                        points = [];
+                        time = 0;
+                        lastParams = currentParams;
+                        
+                        // 显示参数变化指示器
+                        showParamChangeIndicator();
+                    }
+                    
+                    p.background(0, 10, 30);
+                    
+                    // 计算当前位置
+                    const x = ampX * p.sin(2 * p.PI * freqX * time + phaseX);
+                    const y = ampY * p.sin(2 * p.PI * freqY * time + phaseY);
+                    
+                    // 添加新点
+                    points.push({x, y, time});
+                    
+                    // 移除旧点
+                    while (points.length > 0 && points[0].time < time - duration) {
+                        points.shift();
+                    }
+                    
+                    // 绘制坐标轴
+                    p.stroke(100);
+                    p.strokeWeight(1);
+                    p.line(p.width/2, 0, p.width/2, p.height);
+                    p.line(0, p.height/2, p.width, p.height/2);
+                    
+                    // 绘制网格 - 每0.5单位
+                    p.stroke(50);
+                    p.strokeWeight(0.5);
+                    for (let i = -2; i <= 2; i += 0.5) {
+                        if (i !== 0) {
+                            p.line(p.width/2 + i*100, 0, p.width/2 + i*100, p.height);
+                            p.line(0, p.height/2 + i*100, p.width, p.height/2 + i*100);
+                        }
+                    }
+                    
+                    // 绘制坐标轴标签
+                    p.fill(200);
+                    p.noStroke();
+                    p.textSize(14);
+                    p.text('X', p.width - 20, p.height/2 - 10);
+                    p.text('Y', p.width/2 + 10, 20);
+                    
+                    // 绘制刻度标签
+                    p.textSize(12);
+                    for (let i = -2; i <= 2; i += 0.5) {
+                        if (i !== 0) {
+                            p.text(i.toFixed(1), p.width/2 + i*100 - 10, p.height/2 + 20);
+                            p.text(i.toFixed(1), p.width/2 - 25, p.height/2 - i*100 + 5);
+                        }
+                    }
+                    
+                    // 绘制轨迹
+                    p.stroke(79, 195, 247, 200);
+                    p.strokeWeight(2);
+                    p.noFill();
+                    p.beginShape();
+                    for (let i = 0; i < points.length; i++) {
+                        const px = p.width/2 + points[i].x * 100;
+                        const py = p.height/2 - points[i].y * 100; // 注意：p5的y轴向下为正
+                        p.vertex(px, py);
+                    }
+                    p.endShape();
+                    
+                    // 绘制当前点
+                    p.fill(255, 235, 59);
+                    p.stroke(255, 235, 59);
+                    p.strokeWeight(2);
+                    const px = p.width/2 + x * 100;
+                    const py = p.height/2 - y * 100;
+                    p.ellipse(px, py, 10, 10);
+                    
+                    // 绘制x和y振动指示器
+                    p.stroke(79, 195, 247, 150);
+                    p.strokeWeight(1);
+                    p.line(px, py, px, p.height/2);
+                    p.line(px, py, p.width/2, py);
+                    
+                    // 显示参数信息
+                    p.fill(200);
+                    p.noStroke();
+                    p.textSize(16);
+                    p.text(`频率比: ${freqX}:${freqY}`, 20, 30);
+                    p.text(`相位差: ${((phaseY - phaseX) * 180 / Math.PI).toFixed(0)}°`, 20, 60);
+                    p.text(`振幅比: ${ampX.toFixed(1)}:${ampY.toFixed(1)}`, 20, 90);
+                    
+                    // 更新时间
+                    time += 0.01;
+                };
+            });
+        }
+        
+        // 显示参数变化指示器
+        function showParamChangeIndicator() {
+            // 显示指示器
+            document.getElementById('reset-indicator').classList.add('active');
+            document.getElementById('x-indicator').classList.add('active');
+            document.getElementById('y-indicator').classList.add('active');
+            document.getElementById('settings-indicator').classList.add('active');
+            
+            // 高亮控制组
+            document.getElementById('x-control-group').classList.add('active');
+            document.getElementById('y-control-group').classList.add('active');
+            document.getElementById('settings-group').classList.add('active');
+            
+            // 3秒后移除指示器
+            setTimeout(() => {
+                document.getElementById('reset-indicator').classList.remove('active');
+                document.getElementById('x-indicator').classList.remove('active');
+                document.getElementById('y-indicator').classList.remove('active');
+                document.getElementById('settings-indicator').classList.remove('active');
+                
+                document.getElementById('x-control-group').classList.remove('active');
+                document.getElementById('y-control-group').classList.remove('active');
+                document.getElementById('settings-group').classList.remove('active');
+            }, 1000);
+        }
+        
+        // 清除李萨如图形轨迹
+        function clearLissajous() {
+            initLissajous();
+            showParamChangeIndicator();
+        }
+        
+        // 监听李萨如参数变化
+        document.querySelectorAll('#perpendicular input[type="range"]').forEach(slider => {
+            slider.addEventListener('input', () => {
+                // 更新显示值
+                const valueDisplay = slider.nextElementSibling;
+                valueDisplay.textContent = slider.id.includes('phase') || 
+                                         slider.id.includes('freqY') || 
+                                         slider.id.includes('freqX') || 
+                                         slider.id.includes('freq') ?
+                    `${slider.value}${slider.id.includes('phase') ? '°' : (slider.id.includes('freq') ? ' Hz' : '')}` : 
+                    parseFloat(slider.value).toFixed(1);
+                
+                // 更新对应的span值
+                const spanId = slider.id + '-value';
+                if (document.getElementById(spanId)) {
+                    document.getElementById(spanId).textContent = 
+                        slider.id.includes('phase') ? 
+                        parseFloat(slider.value).toFixed(0) : 
+                        parseFloat(slider.value).toFixed(1);
+                }
+                
+                // 清除轨迹
+                clearLissajous();
+            });
+        });
+        
+        // 清除按钮事件
+        document.getElementById('clearBtn').addEventListener('click', clearLissajous);
+        
+        // 初始创建李萨如图形
+        initLissajous();
+    </script>
+</body>
+</html>
